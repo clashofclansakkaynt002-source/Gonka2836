@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FORMULA RUSH</title>
+
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    background: #0b0b0b;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+}
+
+canvas {
+    display: block;
+    background: #222;
+}
+
+/* UI */
+#ui {
+    position: fixed;
+    bottom: 10px;
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+}
+
+.btn {
+    width: 70px;
+    height: 70px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 50%;
+    color: white;
+    font-size: 24px;
+    text-align: center;
+    line-height: 70px;
+    user-select: none;
+}
+.btn:active {
+    background: rgba(255,255,255,0.35);
+}
+
+#top {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    color: white;
+}
+</style>
+</head>
+
+<body>
+
+<div id="top">
+    <b>FORMULA RUSH</b><br>
+    Speed: <span id="speed">0</span>
+</div>
+
+<canvas id="game"></canvas>
+
+<div id="ui">
+    <div class="btn" id="left">⬅️</div>
+    <div class="btn" id="gas">⬆️</div>
+    <div class="btn" id="brake">⬇️</div>
+    <div class="btn" id="right">➡️</div>
+    <div class="btn" id="turbo">💨</div>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+
+/* --- ЗАВАНТАЖЕННЯ ЗОБРАЖЕННЯ --- */
+const carImg = new Image();
+carImg.src = "car.png";
+
+/* --- ГРАВЕЦЬ --- */
+const player = {
+    x: canvas.width / 2,
+    y: canvas.height - 150,
+    speed: 0,
+    angle: 0,
+    turbo: 0
+};
+
+/* --- AI --- */
+const bots = [];
+for (let i = 0; i < 5; i++) {
+    bots.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * -1000,
+        speed: 3 + Math.random() * 2
+    });
+}
+
+/* --- КЕРУВАННЯ --- */
+const keys = {};
+document.querySelectorAll(".btn").forEach(btn => {
+    btn.ontouchstart = () => keys[btn.id] = true;
+    btn.ontouchend = () => keys[btn.id] = false;
+});
+
+/* --- ЛОГІКА --- */
+function update() {
+
+    if (keys.gas) player.speed += 0.15;
+    if (keys.brake) player.speed -= 0.2;
+    if (keys.left) player.angle -= 0.05;
+    if (keys.right) player.angle += 0.05;
+
+    if (keys.turbo && player.turbo <= 0) {
+        player.turbo = 60;
+    }
+
+    if (player.turbo > 0) {
+        player.speed += 0.4;
+        player.turbo--;
+    }
+
+    player.speed *= 0.98;
+    player.speed = Math.max(0, Math.min(player.speed, 12));
+
+    player.x += Math.sin(player.angle) * player.speed;
+    player.y -= Math.cos(player.angle) * player.speed;
+
+    document.getElementById("speed").innerText = Math.round(player.speed * 10);
+
+    bots.forEach(b => {
+        b.y += b.speed;
+        if (b.y > canvas.height + 100) {
+            b.y = -500;
+            b.x = Math.random() * canvas.width;
+        }
+    });
+}
+
+/* --- МАЛЮВАННЯ --- */
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // траса
+    ctx.fillStyle = "#555";
+    ctx.fillRect(100, 0, canvas.width - 200, canvas.height);
+
+    // боти
+    bots.forEach(b => {
+        ctx.drawImage(carImg, b.x - 20, b.y - 40, 40, 80);
+    });
+
+    // гравець
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.rotate(player.angle);
+    ctx.drawImage(carImg, -25, -50, 50, 100);
+    ctx.restore();
+}
+
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>
